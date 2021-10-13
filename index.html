@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Pantasya Chat</title>
+    <style>
+
+      * { font-family: monospace; font-size:32px; }
+      
+      body { overscroll-behavior: contain; }
+  
+      body { margin: 0; padding-bottom: 3rem; }
+
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+     
+    </style>
+  </head>
+  <body>
+    <div id="messages"></div>
+
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+      
+      function rnd(n) {
+        return Math.floor(Math.random()*n);
+      }
+
+      function getRandomId() {
+        var digits="0123456789";
+        var id="";
+        for(var i=0;i<4;i++) id+=digits.charAt(rnd(digits.length));
+        return id;
+      }
+      
+      var nick = "guest"+getRandomId();
+      
+      var socket = io();
+
+      var messages = document.getElementById('messages');
+      var form = document.getElementById('form');
+      var input = document.getElementById('input');
+      
+      
+      function doIt(code) {
+        var headID = document.getElementsByTagName("head")[0];
+        var newScript = document.createElement("script");
+        newScript.type = "text/javascript";
+        newScript.innerHTML = code;
+        headID.appendChild(newScript);
+      }
+      
+      function changeNick(newNick) {
+        socket.emit('chat message',{type:'message',from:nick,value:nick+' is now known as '+newNick+'<br>'});
+        nick=newNick;
+      }
+      
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (input.value) {
+          var cmd=input.value.split(' ',2);
+          
+          socket.emit('chat message',{type:'message',from:nick,value:'<b>'+nick+'</b> '+input.value+'<br>'});
+          
+          if(cmd[0]==='.nick') {
+            changeNick(cmd[1]);
+          } else if(cmd[0]==='.calc') {
+            socket.emit('chat message',{type:'message',from:nick,value:'<b>'+nick+'</b> '+eval(cmd[1])+'<br>'});          
+          }
+          
+          input.value = '';
+        }
+      });
+      
+      socket.on('connect', () => {
+        socket.emit('chat message',{type:'message',from:nick,value:nick+' connects<br>'});
+      });
+
+      socket.on('disconnect', () => {
+        socket.emit('chat message',{type:'message',from:nick,value:nick+' disconnects<br>'});
+      });
+
+      socket.on('chat message', msg => {
+        if(msg.type==='message') {
+          messages.innerHTML+=msg.value;
+          window.scrollTo(0, document.body.scrollHeight);
+        }
+      });
+    
+    </script>
+  </body>
+</html>
